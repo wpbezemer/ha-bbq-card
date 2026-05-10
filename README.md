@@ -2,7 +2,7 @@
 
 A custom Lovelace card for Home Assistant to monitor BBQ and probe temperatures with a beautiful round gauge.
 
-![BBQ Card Preview](https://raw.githubusercontent.com/YOUR_USERNAME/bbq-card/main/preview.png)
+![BBQ Card Preview](https://raw.githubusercontent.com/wpbezemer/ha-bbq-card/main/preview.png)
 
 ## Features
 
@@ -32,7 +32,7 @@ A custom Lovelace card for Home Assistant to monitor BBQ and probe temperatures 
 
 ### Manual
 
-1. Download `bbq-card.js` from the [latest release](https://github.com/YOUR_USERNAME/bbq-card/releases/latest)
+1. Download `bbq-card.js` from the [latest release](https://github.com/wpbezemer/ha-bbq-card/releases/latest)
 2. Copy it to `/config/www/bbq-card.js`
 3. Go to **Settings → Dashboards → ⋮ → Resources**
 4. Add `/local/bbq-card.js` as a **JavaScript module**
