@@ -294,6 +294,14 @@ cards:
 
 ---
 
+## Related projects
+
+This card is designed to work together with the ESPHome configuration for the **AT-02 BBQ Grill Thermometer** — a BLE thermometer with up to 6 probes that exposes temperature sensors directly to Home Assistant.
+
+👉 [ha-bbq-thermometer-AT-02-esphome](https://github.com/wpbezemer/ha-bbq-thermometer-AT-02-esphome) — ESPHome config with per-probe disconnect detection, built to pair with this card.
+
+---
+
 ## Contributing
 
 Pull requests are welcome! Please open an issue first to discuss what you would like to change.
