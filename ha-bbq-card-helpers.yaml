@@ -1,0 +1,236 @@
+# ============================================================
+# BBQ Monitor – Helpers
+# Voeg dit toe aan je configuration.yaml
+# ============================================================
+
+input_boolean:
+  # --- Algemeen ---
+  bbq_snooze_button:
+    name: BBQ Snooze
+    initial: false
+
+  bbq_monitoring_button:
+    name: BBQ Monitoring
+    initial: false
+
+  # --- Probe 1 ---
+  bbq_probe1_snooze_button:
+    name: BBQ Probe 1 Snooze
+    initial: false
+
+  bbq_probe1_monitoring_button:
+    name: BBQ Probe 1 Monitoring
+    initial: false
+
+  # --- Probe 2 ---
+  bbq_probe2_snooze_button:
+    name: BBQ Probe 2 Snooze
+    initial: false
+
+  bbq_probe2_monitoring_button:
+    name: BBQ Probe 2 Monitoring
+    initial: false
+
+  # --- Probe 3 ---
+  bbq_probe3_snooze_button:
+    name: BBQ Probe 3 Snooze
+    initial: false
+
+  bbq_probe3_monitoring_button:
+    name: BBQ Probe 3 Monitoring
+    initial: false
+
+  # --- Probe 4 ---
+  bbq_probe4_snooze_button:
+    name: BBQ Probe 4 Snooze
+    initial: false
+
+  bbq_probe4_monitoring_button:
+    name: BBQ Probe 4 Monitoring
+    initial: false
+
+input_number:
+  # --- Algemeen ---
+  bbq_snooze_minuten:
+    name: BBQ Snooze Minuten
+    min: 1
+    max: 60
+    step: 1
+    initial: 10
+    unit_of_measurement: min
+    icon: mdi:timer-outline
+
+  bbq_min_temp:
+    name: BBQ Min Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 100
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-down
+
+  bbq_max_temp:
+    name: BBQ Max Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 150
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-up
+
+  bbq_setpoint:
+    name: BBQ Setpoint
+    min: 0
+    max: 350
+    step: 1
+    initial: 120
+    unit_of_measurement: °C
+    icon: mdi:thermometer-check
+
+  # --- Probe 1 ---
+  bbq_probe1_snooze_minuten:
+    name: BBQ Probe 1 Snooze Minuten
+    min: 1
+    max: 60
+    step: 1
+    initial: 10
+    unit_of_measurement: min
+    icon: mdi:timer-outline
+
+  bbq_probe1_min_temp:
+    name: BBQ Probe 1 Min Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 100
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-down
+
+  bbq_probe1_max_temp:
+    name: BBQ Probe 1 Max Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 150
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-up
+
+  bbq_probe1_setpoint:
+    name: BBQ Probe 1 Setpoint
+    min: 0
+    max: 350
+    step: 1
+    initial: 120
+    unit_of_measurement: °C
+    icon: mdi:thermometer-check
+
+  # --- Probe 2 ---
+  bbq_probe2_snooze_minuten:
+    name: BBQ Probe 2 Snooze Minuten
+    min: 1
+    max: 60
+    step: 1
+    initial: 10
+    unit_of_measurement: min
+    icon: mdi:timer-outline
+
+  bbq_probe2_min_temp:
+    name: BBQ Probe 2 Min Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 100
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-down
+
+  bbq_probe2_max_temp:
+    name: BBQ Probe 2 Max Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 150
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-up
+
+  bbq_probe2_setpoint:
+    name: BBQ Probe 2 Setpoint
+    min: 0
+    max: 350
+    step: 1
+    initial: 120
+    unit_of_measurement: °C
+    icon: mdi:thermometer-check
+
+  # --- Probe 3 ---
+  bbq_probe3_snooze_minuten:
+    name: BBQ Probe 3 Snooze Minuten
+    min: 1
+    max: 60
+    step: 1
+    initial: 10
+    unit_of_measurement: min
+    icon: mdi:timer-outline
+
+  bbq_probe3_min_temp:
+    name: BBQ Probe 3 Min Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 100
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-down
+
+  bbq_probe3_max_temp:
+    name: BBQ Probe 3 Max Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 150
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-up
+
+  bbq_probe3_setpoint:
+    name: BBQ Probe 3 Setpoint
+    min: 0
+    max: 350
+    step: 1
+    initial: 120
+    unit_of_measurement: °C
+    icon: mdi:thermometer-check
+
+  # --- Probe 4 ---
+  bbq_probe4_snooze_minuten:
+    name: BBQ Probe 4 Snooze Minuten
+    min: 1
+    max: 60
+    step: 1
+    initial: 10
+    unit_of_measurement: min
+    icon: mdi:timer-outline
+
+  bbq_probe4_min_temp:
+    name: BBQ Probe 4 Min Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 100
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-down
+
+  bbq_probe4_max_temp:
+    name: BBQ Probe 4 Max Temperatuur
+    min: 0
+    max: 350
+    step: 1
+    initial: 150
+    unit_of_measurement: °C
+    icon: mdi:thermometer-chevron-up
+
+  bbq_probe4_setpoint:
+    name: BBQ Probe 4 Setpoint
+    min: 0
+    max: 350
+    step: 1
+    initial: 120
+    unit_of_measurement: °C
+    icon: mdi:thermometer-check
