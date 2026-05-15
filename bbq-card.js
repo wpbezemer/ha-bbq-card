@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-//  BBQ Card  v12
-//  - Canvas clipped to circle height: no empty corner space
-//  - Preset always below circle, never in dead zone
-//  - Tight gap between stacked cards
-//  Resource: /local/bbq-card.js?v=12
+//  BBQ Card  v13
+//  - Setpoint mode: single draggable target marker
+//  - Min/Max mode: original two-marker behaviour (default)
+//  - Buttons setting: both / onoff / snooze / none
+//  Resource: /local/bbq-card.js?v=13
 // ─────────────────────────────────────────────────────────────
 
 const SIZES = {
@@ -46,9 +46,11 @@ class BBQCard extends HTMLElement {
   static getStubConfig() {
     return {
       name:'BBQ Monitor', size:'large', show_preset:false,
+      mode:'minmax', buttons:'both',
       temp_entity:'sensor.bbq_temperatuur',
       min_entity:'input_number.bbq_min_temp',
       max_entity:'input_number.bbq_max_temp',
+      target_entity:'input_number.bbq_target_temp',
       onoff_entity:'input_boolean.bbq_monitoring',
       snooze_entity:'input_boolean.bbq_snooze',
       abs_min:0, abs_max:350, step:5, unit:'C', presets:[],
@@ -60,6 +62,7 @@ class BBQCard extends HTMLElement {
     this._config = {
       abs_min:0, abs_max:350, name:'BBQ Monitor',
       size:'large', show_preset:false, step:5, unit:'C', presets:[],
+      mode:'minmax', buttons:'both',
       ...config,
     };
     this._render();
@@ -88,6 +91,9 @@ class BBQCard extends HTMLElement {
   _cx()    { return this._sz().cs / 2; }
   _cy()    { return this._sz().cs / 2; }
   _isFah() { return (this._config.unit||'C').toUpperCase() === 'F'; }
+  _isSetpoint() { return (this._config.mode||'minmax') === 'setpoint'; }
+  _showOnoff()  { const b = this._config.buttons||'both'; return b==='both' || b==='onoff'; }
+  _showSnooze() { const b = this._config.buttons||'both'; return b==='both' || b==='snooze'; }
   _step()  { return parseFloat(this._config.step) || 5; }
   _disp(c) {
     if (this._isFah()) return toF(c);
@@ -339,25 +345,28 @@ class BBQCard extends HTMLElement {
                 <span class="temp-unit">${unitLabel}</span>
               </div>
               <div class="range-row">
-                <div class="rblock"><div class="rdot mn"></div><span class="rval mn" id="vmn">--</span><span class="runit">${unitLabel}</span></div>
-                <span class="rsep">—</span>
-                <div class="rblock"><div class="rdot mx"></div><span class="rval mx" id="vmx">--</span><span class="runit">${unitLabel}</span></div>
+                <div class="rblock"><div class="rdot mn" id="rdot-mn"></div><span class="rval mn" id="vmn">--</span><span class="runit">${unitLabel}</span></div>
+                <span class="rsep" id="rsep">—</span>
+                <div class="rblock" id="rblock-max"><div class="rdot mx"></div><span class="rval mx" id="vmx">--</span><span class="runit">${unitLabel}</span></div>
               </div>
+              ${(cfg.buttons||'both') !== 'none' ? `
               <div class="btn-row">
+                ${(cfg.buttons||'both') === 'both' || (cfg.buttons||'both') === 'onoff' ? `
                 <button class="ibtn" id="fb" title="On/Off">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path d="M12 2C12 2 7 7 7 13C7 15.76 9.24 18 12 18C14.76 18 17 15.76 17 13C17 10 15 8 15 8C15 8 14 11 12 11C10 11 10 9 10 9C10 9 12 7 12 2Z" fill="#E8873A"/>
                     <path d="M12 18C12 18 10 20 10 21.5C10 22.33 10.67 23 11.5 23H12.5C13.33 23 14 22.33 14 21.5C14 20 12 18 12 18Z" fill="#E8873A" opacity="0.5"/>
                   </svg>
-                </button>
+                </button>` : ''}
+                ${(cfg.buttons||'both') === 'both' || (cfg.buttons||'both') === 'snooze' ? `
                 <button class="ibtn" id="sb" title="Snooze">
                   <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8" stroke-linecap="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     <path d="M5 3L3 5M19 3L21 5" stroke-width="2"/>
                   </svg>
-                </button>
-              </div>
+                </button>` : ''}
+              </div>` : ''}
             </div>
           </div>
         </div>
@@ -390,10 +399,12 @@ class BBQCard extends HTMLElement {
     clip.addEventListener('touchstart', this._onDown.bind(this), { passive:false });
 
     // Buttons
-    this.shadowRoot.getElementById('fb').addEventListener('click', () => {
+    const fbEl = this.shadowRoot.getElementById('fb');
+    const sbEl = this.shadowRoot.getElementById('sb');
+    if (fbEl) fbEl.addEventListener('click', () => {
       this._call('input_boolean', this._bool(cfg.onoff_entity)?'turn_off':'turn_on', cfg.onoff_entity);
     });
-    this.shadowRoot.getElementById('sb').addEventListener('click', () => {
+    if (sbEl) sbEl.addEventListener('click', () => {
       this._call('input_boolean', this._bool(cfg.snooze_entity)?'turn_off':'turn_on', cfg.snooze_entity);
     });
 
@@ -418,22 +429,29 @@ class BBQCard extends HTMLElement {
     const { abs_min:mn, abs_max:mx } = this._config;
     const arcDeg = Math.max(ARC_START, Math.min(ARC_END, this._toArc(deg)));
     const nv     = Math.max(mn, Math.min(mx, this._degToVal(arcDeg)));
-    const curMin = this._num(this._config.min_entity, mn);
-    const curMax = this._num(this._config.max_entity, mx);
-    const step   = this._step();
 
-    if (this._drag === 'max') {
-      const v = Math.max(curMin + step, nv);
-      this._call('input_number', 'set_value', this._config.max_entity, { value:v });
-      const el = this.shadowRoot.getElementById('vmx');
-      if (el) el.textContent = this._disp(v);
-      this._draw(this._num(this._config.temp_entity, null), curMin, v, this._bool(this._config.onoff_entity));
-    } else {
-      const v = Math.max(mn, Math.min(curMax - step, nv));
-      this._call('input_number', 'set_value', this._config.min_entity, { value:v });
+    if (this._drag === 'target') {
+      this._call('input_number', 'set_value', this._config.target_entity, { value:nv });
       const el = this.shadowRoot.getElementById('vmn');
-      if (el) el.textContent = this._disp(v);
-      this._draw(this._num(this._config.temp_entity, null), v, curMax, this._bool(this._config.onoff_entity));
+      if (el) el.textContent = this._disp(nv);
+      this._draw(this._num(this._config.temp_entity, null), nv, null, this._bool(this._config.onoff_entity));
+    } else {
+      const curMin = this._num(this._config.min_entity, mn);
+      const curMax = this._num(this._config.max_entity, mx);
+      const step   = this._step();
+      if (this._drag === 'max') {
+        const v = Math.max(curMin + step, nv);
+        this._call('input_number', 'set_value', this._config.max_entity, { value:v });
+        const el = this.shadowRoot.getElementById('vmx');
+        if (el) el.textContent = this._disp(v);
+        this._draw(this._num(this._config.temp_entity, null), curMin, v, this._bool(this._config.onoff_entity));
+      } else {
+        const v = Math.max(mn, Math.min(curMax - step, nv));
+        this._call('input_number', 'set_value', this._config.min_entity, { value:v });
+        const el = this.shadowRoot.getElementById('vmn');
+        if (el) el.textContent = this._disp(v);
+        this._draw(this._num(this._config.temp_entity, null), v, curMax, this._bool(this._config.onoff_entity));
+      }
     }
   }
 
@@ -452,7 +470,16 @@ class BBQCard extends HTMLElement {
     const cx       = rect.left + sz.cs/2;
     const cy       = rect.top  - clipTop + sz.cs/2;
     const CX       = this._cx(), CY = this._cy();
-    const hits     = [];
+
+    if (this._isSetpoint()) {
+      const val = this._num(this._config.target_entity, this._config.abs_min);
+      const p   = pt(this._valToDeg(val), g.handleR, CX, CY);
+      const sx  = cx + (p.x - CX) * scale;
+      const sy  = cy + (p.y - CY) * scale;
+      return Math.hypot(px-sx, py-sy) < 28 ? 'target' : null;
+    }
+
+    const hits = [];
     for (const which of ['min','max']) {
       const val = which === 'max'
         ? this._num(this._config.max_entity, this._config.abs_max)
@@ -488,8 +515,6 @@ class BBQCard extends HTMLElement {
     if (!this._hass) return;
     const cfg     = this._config;
     const current = this._num(cfg.temp_entity, null);
-    const min     = this._num(cfg.min_entity, cfg.abs_min);
-    const max     = this._num(cfg.max_entity, cfg.abs_max);
     const isOn    = this._bool(cfg.onoff_entity);
     const snzd    = this._bool(cfg.snooze_entity);
     const el      = (id) => this.shadowRoot.getElementById(id);
@@ -508,21 +533,43 @@ class BBQCard extends HTMLElement {
         if (unit) unit.style.display = 'none';
       }
     }
-    if (el('vmn')) el('vmn').textContent = this._disp(min);
-    if (el('vmx')) el('vmx').textContent = this._disp(max);
-    if (el('fb'))  el('fb').className    = 'ibtn' + (isOn ? ' on-flame'  : '');
-    if (el('sb'))  el('sb').className    = 'ibtn' + (snzd ? ' on-snooze' : '');
+    if (el('fb')) el('fb').className = 'ibtn' + (isOn ? ' on-flame'  : '');
+    if (el('sb')) el('sb').className = 'ibtn' + (snzd ? ' on-snooze' : '');
 
-    let col = '#fff';
-    if (current === null) {
-      col = 'rgba(255,255,255,0.3)';  // greyed out when disconnected
-    } else if (isOn) {
-      if (current < min)      col = '#5ab4e8';
-      else if (current > max) col = '#e84632';
-      else                    col = '#E8873A';
+    if (this._isSetpoint()) {
+      const target = this._num(cfg.target_entity, cfg.abs_min);
+      if (el('vmn')) el('vmn').textContent = this._disp(target);
+      if (el('rsep'))       el('rsep').style.display       = 'none';
+      if (el('rblock-max')) el('rblock-max').style.display = 'none';
+      // dot en label oranje kleur
+      const dot  = this.shadowRoot.querySelector('#rdot-mn');
+      if (dot)  { dot.classList.remove('mn'); dot.classList.add('mx'); }
+      const rval = this.shadowRoot.querySelector('.rval.mn');
+      if (rval) { rval.classList.remove('mn'); rval.classList.add('mx'); }
+
+      let col = '#fff';
+      if (current === null) col = 'rgba(255,255,255,0.3)';
+      else if (isOn) col = current >= target ? '#E8873A' : '#5ab4e8';
+      if (el('tv')) el('tv').style.color = col;
+      this._draw(current, target, null, isOn);
+    } else {
+      const min = this._num(cfg.min_entity, cfg.abs_min);
+      const max = this._num(cfg.max_entity, cfg.abs_max);
+      if (el('vmn')) el('vmn').textContent = this._disp(min);
+      if (el('vmx')) el('vmx').textContent = this._disp(max);
+      if (el('rsep'))       el('rsep').style.display       = '';
+      if (el('rblock-max')) el('rblock-max').style.display = '';
+
+      let col = '#fff';
+      if (current === null)     col = 'rgba(255,255,255,0.3)';
+      else if (isOn) {
+        if (current < min)      col = '#5ab4e8';
+        else if (current > max) col = '#e84632';
+        else                    col = '#E8873A';
+      }
+      if (el('tv')) el('tv').style.color = col;
+      this._draw(current, min, max, isOn);
     }
-    if (el('tv')) el('tv').style.color = col;
-    this._draw(current, min, max, isOn);
   }
 
   _draw(current, min, max, isOn) {
@@ -533,6 +580,7 @@ class BBQCard extends HTMLElement {
     const CX  = this._cx(), CY = this._cy();
     const g   = this._geo();
     const { abs_min:amn, abs_max:amx } = this._config;
+    const setpointMode = max === null;
 
     this._canvas.width = this._canvas.height = cs;
     ctx.clearRect(0,0,cs,cs);
@@ -550,17 +598,22 @@ class BBQCard extends HTMLElement {
       const vh=amn+f*(amx-amn);
       let col='rgba(255,255,255,0.1)';
       if (current!==null && vh<=current) {
-        if (!isOn)             col='rgba(255,255,255,0.15)';
-        else if (current<min)  col='rgba(90,180,232,0.75)';
-        else if (current>max)  col='rgba(232,70,50,0.85)';
-        else                   col='rgba(232,135,58,0.85)';
+        if (!isOn)                    col='rgba(255,255,255,0.15)';
+        else if (setpointMode)        col = current >= min ? 'rgba(232,135,58,0.85)' : 'rgba(90,180,232,0.75)';
+        else if (current<min)         col='rgba(90,180,232,0.75)';
+        else if (current>max)         col='rgba(232,70,50,0.85)';
+        else                          col='rgba(232,135,58,0.85)';
       }
       ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
       ctx.strokeStyle=col; ctx.lineWidth=maj?2:1; ctx.lineCap='round'; ctx.stroke();
     }
 
-    this._drawMarker(ctx, min, '#5ab4e8', CX, CY, g, sz);
-    this._drawMarker(ctx, max, '#E8873A', CX, CY, g, sz);
+    if (setpointMode) {
+      this._drawMarker(ctx, min, '#E8873A', CX, CY, g, sz);
+    } else {
+      this._drawMarker(ctx, min, '#5ab4e8', CX, CY, g, sz);
+      this._drawMarker(ctx, max, '#E8873A', CX, CY, g, sz);
+    }
 
     ctx.beginPath(); ctx.arc(CX,CY,g.innerR,0,Math.PI*2);
     ctx.fillStyle='#12121f'; ctx.fill();
@@ -605,7 +658,7 @@ class BBQCardEditor extends HTMLElement {
   }
 
   setConfig(config) {
-    this._config   = { presets:[], step:5, unit:'C', ...config };
+    this._config   = { presets:[], step:5, unit:'C', mode:'minmax', buttons:'both', ...config };
     this._rendered = false;
     this._tryRender();
   }
@@ -757,7 +810,20 @@ class BBQCardEditor extends HTMLElement {
           <div class="hint">Altijd in °C</div>
         </div>
 
-        <div class="sec">Min / Max instelling</div>
+        <div class="sec">Marker instelling</div>
+        <div class="full">
+          <label>Modus</label>
+          <select class="native" data-key="mode">
+            <option value="minmax"   ${(c.mode||'minmax')==='minmax'  ?'selected':''}>Min / Max (2 markers)</option>
+            <option value="setpoint" ${c.mode==='setpoint'            ?'selected':''}>Setpoint (1 marker)</option>
+          </select>
+        </div>
+        ${(c.mode||'minmax') === 'setpoint' ? `
+        <div class="full">
+          <label>Setpoint entity</label>
+          ${this._field('target_entity','dl-number',c.target_entity,'input_number.bbq_target')}
+        </div>
+        ` : `
         <div>
           <label>Min temp entity</label>
           ${this._field('min_entity','dl-number',c.min_entity,'input_number.bbq_min')}
@@ -766,16 +832,30 @@ class BBQCardEditor extends HTMLElement {
           <label>Max temp entity</label>
           ${this._field('max_entity','dl-number',c.max_entity,'input_number.bbq_max')}
         </div>
+        `}
 
         <div class="sec">Knoppen</div>
+        <div class="full">
+          <label>Welke knoppen tonen</label>
+          <select class="native" data-key="buttons">
+            <option value="both"   ${(c.buttons||'both')==='both'   ?'selected':''}>Beide (aan/uit + snooze)</option>
+            <option value="onoff"  ${c.buttons==='onoff'            ?'selected':''}>Alleen aan/uit</option>
+            <option value="snooze" ${c.buttons==='snooze'           ?'selected':''}>Alleen snooze</option>
+            <option value="none"   ${c.buttons==='none'             ?'selected':''}>Geen knoppen</option>
+          </select>
+        </div>
+        ${(c.buttons||'both') !== 'none' ? `
+        ${((c.buttons||'both') === 'both' || c.buttons === 'onoff') ? `
         <div>
           <label>On/Off entity</label>
           ${this._field('onoff_entity','dl-boolean',c.onoff_entity,'input_boolean.bbq_monitoring')}
-        </div>
+        </div>` : ''}
+        ${((c.buttons||'both') === 'both' || c.buttons === 'snooze') ? `
         <div>
           <label>Snooze entity</label>
           ${this._field('snooze_entity','dl-boolean',c.snooze_entity,'input_boolean.bbq_snooze')}
-        </div>
+        </div>` : ''}
+        ` : ''}
 
         <div class="sec">Presets <span style="font-weight:400;text-transform:none;font-size:10px;">(waarden in °C)</span></div>
         <div class="full">
@@ -858,7 +938,7 @@ if (!window.customCards.find(c => c.type === 'bbq-card')) {
   window.customCards.push({
     type:        'bbq-card',
     name:        'BBQ Monitor Card',
-    description: 'Ronde gauge voor BBQ temperatuur met sleepbare min/max markers, presets, Fahrenheit/Celsius en grote/kleine weergave.',
+    description: 'Ronde gauge voor BBQ temperatuur met sleepbare min/max of setpoint marker, keuze voor knoppen, presets, Fahrenheit/Celsius en grote/kleine weergave.',
     preview:     true,
   });
 }
